@@ -42,9 +42,44 @@ func (c *Checker) CheckAddr(addr string, timeout time.Duration) error {
 
 // CheckAddrZeroLinger is CheckerAddr with a zeroLinger parameter.
 func (c *Checker) CheckAddrZeroLinger(addr string, timeout time.Duration, zeroLinger bool) error {
-	conn, err := net.DialTimeout("tcp", addr, timeout)
+	return c.CheckAddrWithOptions(addr, Options{
+		Timeout:    timeout,
+		Network:    "tcp",
+		ZeroLinger: zeroLinger,
+		Mark:       0,
+	})
+}
+
+// CheckAddrWithOptions performs a TCP check with given options
+// Supported network types: "tcp" (try IPv4 before IPv6), "tcp4" (IPv4-only),
+// "tcp6" (IPv6-only), "tcp6-then-tcp4" (try IPv6 before IPv4)
+// NOTE: Mark option is ignored on non-Linux platforms
+func (c *Checker) CheckAddrWithOptions(addr string, opts Options) error {
+	// Set default network if not specified
+	if opts.Network == "" {
+		opts.Network = "tcp"
+	}
+
+	// Handle advanced network types
+	switch opts.Network {
+	case "tcp6-then-tcp4":
+		// Try IPv6 first, then IPv4 on failure
+		if err := c.tryCheckAddr(addr, "tcp6", opts); err == nil {
+			return nil
+		}
+		// If IPv6 fails, try IPv4
+		return c.tryCheckAddr(addr, "tcp4", opts)
+	default:
+		// Standard network types: tcp, tcp4, tcp6
+		return c.tryCheckAddr(addr, opts.Network, opts)
+	}
+}
+
+// tryCheckAddr performs the actual TCP check with a specific network type
+func (c *Checker) tryCheckAddr(addr, network string, opts Options) error {
+	conn, err := net.DialTimeout(network, addr, opts.Timeout)
 	if conn != nil {
-		if zeroLinger {
+		if opts.ZeroLinger {
 			// Simply ignore the error since this is a fake implementation.
 			_ = conn.(*net.TCPConn).SetLinger(0)
 		}

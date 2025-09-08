@@ -141,16 +141,51 @@ func (c *Checker) CheckAddr(addr string, timeout time.Duration) (err error) {
 
 // CheckAddrZeroLinger is like CheckAddr with an extra parameter indicating whether to enable zero linger.
 func (c *Checker) CheckAddrZeroLinger(addr string, timeout time.Duration, zeroLinger bool) error {
-	// Set deadline
-	deadline := time.Now().Add(timeout)
+	return c.CheckAddrWithOptions(addr, Options{
+		Timeout:    timeout,
+		Network:    "tcp",
+		ZeroLinger: zeroLinger,
+		Mark:       0,
+	})
+}
 
-	// Parse address
-	rAddr, family, err := parseSockAddr(addr)
+// CheckAddrWithOptions performs a TCP check with given options
+// Supported network types: "tcp" (try IPv4 before IPv6), "tcp4" (IPv4-only),
+// "tcp6" (IPv6-only), "tcp6-then-tcp4" (try IPv6 before IPv4)
+func (c *Checker) CheckAddrWithOptions(addr string, opts Options) error {
+	// Set default network if not specified
+	if opts.Network == "" {
+		opts.Network = "tcp"
+	}
+
+	// Set deadline
+	deadline := time.Now().Add(opts.Timeout)
+
+	// Handle advanced network types
+	switch opts.Network {
+	case "tcp6-then-tcp4":
+		// Try IPv6 first, then IPv4 on failure
+		if err := c.tryCheckAddr(addr, "tcp6", opts, time.Until(deadline)); err == nil {
+			return nil
+		}
+		// If IPv6 fails, try IPv4 with remaining time
+		return c.tryCheckAddr(addr, "tcp4", opts, time.Until(deadline))
+	default:
+		// Standard network types: tcp, tcp4, tcp6
+		return c.tryCheckAddr(addr, opts.Network, opts, time.Until(deadline))
+	}
+}
+
+// tryCheckAddr performs the actual TCP check with a specific network type
+func (c *Checker) tryCheckAddr(addr, network string, opts Options, timeout time.Duration) error {
+	// Parse address with specific network type
+	rAddr, family, err := parseSockAddrWithNetwork(addr, network)
 	if err != nil {
 		return err
 	}
+
 	// Create socket with options set
-	fd, err := createSocketZeroLinger(family, zeroLinger)
+	fd, err := createSocketWithOptions(family, opts.ZeroLinger, opts.Mark)
 	if err != nil {
 		return err
 	}
@@ -167,7 +202,7 @@ func (c *Checker) CheckAddrZeroLinger(addr string, timeout time.Duration, zeroLi
 	}
 	// Otherwise wait for the result of connect.
 
-	return c.waitConnectResult(fd, time.Until((deadline)))
+	return c.waitConnectResult(fd, timeout)
 }
 
 func (c *Checker) waitConnectResult(fd int, timeout time.Duration) error {
