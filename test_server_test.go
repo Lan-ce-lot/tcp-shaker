@@ -12,3 +12,4 @@ func StartTestServer() (string, context.CancelFunc) {
 	addr := ts.Listener.Addr().String()
 	return addr, ts.Close
 }
+
