@@ -12,8 +12,8 @@ import (
 
 const maxEpollEvents = 32
 
-// createSocketWithOptions creates a socket with specified options
-func createSocketWithOptions(family int, zeroLinger bool) (fd int, err error) {
+// createSocketZeroLinger creates a socket with specified options
+func createSocketZeroLinger(family int, zeroLinger bool) (fd int, err error) {
 	// Create socket
 	fd, err = _createNonBlockingSocket(family)
 	if err != nil {

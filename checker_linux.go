@@ -159,7 +159,7 @@ func (c *Checker) CheckAddrWithOptions(addr string, opts Options) error {
 		return err
 	}
 	// Create socket with options set
-	fd, err := createSocketWithOptions(family, opts.ZeroLinger)
+	fd, err := createSocketZeroLinger(family, opts.ZeroLinger)
 	if err != nil {
 		return err
 	}
