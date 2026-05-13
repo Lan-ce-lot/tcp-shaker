@@ -9,11 +9,21 @@ type Options struct {
 	// Timeout specifies the maximum duration for the check operation
 	Timeout time.Duration
 
-	// Network specifies the network type for address resolution and connection
+	// Network specifies the network type for address resolution and connection.
+	//
 	// Supported values:
-	//   "tcp"  - Try IPv4 first, then IPv6 (default behavior)
-	//   "tcp4" - IPv4 only
-	//   "tcp6" - IPv6 only
+	//   "tcp4"   IPv4 only.
+	//   "tcp6"   IPv6 only.
+	//   "tcp"    Default. Accepts both IPv4 and IPv6.
+	//
+	//   - IP literal:      the address family matches the literal.
+	//   - Hostname+tcp4/6: only the requested record type (A/AAAA)
+	//                      is resolved.
+	//   - Hostname+tcp:    resolved to whichever IP the system DNS
+	//                      resolver returns first (as of Go 1.26).
+	//
+	// Only that one address is tried; there is no fallback between
+	// IPv4 and IPv6.
 	Network string
 
 	// ZeroLinger indicates whether to set SO_LINGER with zero timeout
