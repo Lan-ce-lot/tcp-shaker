@@ -3,6 +3,7 @@ package tcp
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 
 	"os"
@@ -170,6 +171,7 @@ func TestIPv6Support(t *testing.T) {
 		return
 	}
 	defer stopServer6()
+	log.Printf("using test addr: %s", testAddr6)
 
 	// Test IPv6 connection with tcp6 network
 	opts6 := DefaultOptions().WithTimeout(2 * time.Second).WithNetwork("tcp6")

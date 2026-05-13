@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"context"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,7 @@ func StartTestServer() (string, context.CancelFunc) {
 	ts.Listener = listener
 	ts.Start()
 	addr := ts.Listener.Addr().String()
+	log.Printf("StartTestServer listening on %s", addr)
 	return addr, ts.Close
 }
 
@@ -39,6 +41,7 @@ func StartTestServerIPv6() (string, context.CancelFunc, error) {
 	}()
 
 	addr := listener.Addr().String()
+	log.Printf("StartTestServerIPv6 listening on %s", addr)
 	cancel := func() {
 		_ = server.Close()
 	}
